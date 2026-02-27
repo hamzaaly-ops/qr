@@ -4,3 +4,5 @@ __pycache__/
 .mypy_cache/
 .env
 models/*.joblib
+models/*.onnx
+models/cv_adapter.py

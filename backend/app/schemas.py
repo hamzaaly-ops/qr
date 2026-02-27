@@ -20,6 +20,11 @@ class URLScanResponse(BaseModel):
     url_flags: list[str] = Field(default_factory=list)
 
     ml_phishing_probability: float = Field(ge=0.0, le=1.0)
+    cv_malicious_probability: float | None = Field(default=None, ge=0.0, le=1.0)
+    cv_prediction: str | None = None
+    cv_model_source: str | None = None
+    cv_model_error: str | None = None
+
     risk_score: int = Field(ge=0, le=100)
     risk_level: str
     verdict_color: str

@@ -2,6 +2,7 @@ import math
 from pathlib import Path
 
 import joblib
+import pandas as pd
 
 from app.services.ml_features import FEATURE_NAMES, extract_url_features
 
@@ -24,7 +25,10 @@ class PhishingModelService:
         features = extract_url_features(url)
 
         if self.model is not None:
-            ordered = [[features[name] for name in FEATURE_NAMES]]
+            ordered = pd.DataFrame(
+                [[features[name] for name in FEATURE_NAMES]],
+                columns=FEATURE_NAMES,
+            )
             try:
                 return float(self.model.predict_proba(ordered)[0][1])
             except Exception:  # noqa: BLE001

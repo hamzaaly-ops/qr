@@ -111,3 +111,51 @@ class URLAnalyzer:
             verdict_color=verdict_color,
             reasons=reasons,
         )
+
+    def merge_cv_signal(
+        self,
+        scan: URLScanResponse,
+        cv_malicious_probability: float | None,
+        cv_prediction: str | None,
+        cv_model_source: str | None,
+        cv_error: str | None = None,
+    ) -> URLScanResponse:
+        payload = scan.model_dump()
+        reasons = list(payload["reasons"])
+
+        payload["cv_malicious_probability"] = (
+            None if cv_malicious_probability is None else round(float(cv_malicious_probability), 4)
+        )
+        payload["cv_prediction"] = cv_prediction
+        payload["cv_model_source"] = cv_model_source
+        payload["cv_model_error"] = cv_error
+
+        if cv_malicious_probability is None:
+            if cv_error:
+                reasons.append(f"CV model note: {cv_error}")
+            payload["reasons"] = reasons
+            return URLScanResponse(**payload)
+
+        cv_points = int(round(float(cv_malicious_probability) * 50))
+        combined_score = max(0, min(100, int(payload["risk_score"]) + cv_points))
+        level, color = _risk_level(combined_score)
+
+        payload["risk_score"] = combined_score
+        payload["risk_level"] = level
+        payload["verdict_color"] = color
+
+        if cv_malicious_probability >= 0.7:
+            reasons.append(
+                f"CV model indicates malicious visual pattern ({cv_malicious_probability:.2f})."
+            )
+        elif cv_malicious_probability <= 0.3:
+            reasons.append(
+                f"CV model indicates benign visual pattern ({cv_malicious_probability:.2f})."
+            )
+        else:
+            reasons.append(
+                f"CV model is uncertain ({cv_malicious_probability:.2f})."
+            )
+
+        payload["reasons"] = reasons
+        return URLScanResponse(**payload)
