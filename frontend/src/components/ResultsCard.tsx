@@ -1,15 +1,18 @@
 import { motion } from "framer-motion";
-import { Shield, Lock, Clock, Bug, Brain, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Lock, Clock, Bug, Brain, AlertTriangle, CheckCircle, XCircle, Eye } from "lucide-react";
 
 interface AnalysisResult {
   risk_score: number;
   risk_level: "SAFE" | "SUSPICIOUS" | "DANGEROUS";
   verdict_color: string;
   domain_age_days: number | null;
-  ssl_valid: boolean;
+  ssl_valid: boolean | null;
   suspicious_keywords: string[];
   url_flags: string[];
   ml_phishing_probability: number;
+  cv_malicious_probability?: number;
+  cv_prediction?: "BENIGN" | "MALICIOUS";
+  cv_model_source?: string;
   reasons: string[];
 }
 
@@ -28,8 +31,8 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
     {
       icon: Lock,
       label: "SSL Certificate",
-      value: result.ssl_valid ? "Valid" : "Invalid",
-      status: result.ssl_valid ? "ok" : "bad",
+      value: result.ssl_valid === true ? "Valid" : result.ssl_valid === false ? "Invalid" : "Unknown",
+      status: result.ssl_valid === true ? "ok" : result.ssl_valid === false ? "bad" : "warn",
     },
     {
       icon: Brain,
@@ -37,6 +40,16 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
       value: `${(result.ml_phishing_probability * 100).toFixed(1)}%`,
       status: result.ml_phishing_probability < 0.3 ? "ok" : result.ml_phishing_probability < 0.6 ? "warn" : "bad",
     },
+    ...(result.cv_malicious_probability !== undefined
+      ? [
+          {
+            icon: Eye,
+            label: "CV Model",
+            value: `${(result.cv_malicious_probability * 100).toFixed(1)}%`,
+            status: result.cv_malicious_probability < 0.3 ? "ok" : result.cv_malicious_probability < 0.6 ? "warn" : "bad",
+          },
+        ]
+      : []),
   ];
 
   const statusIcon = {
@@ -53,7 +66,7 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
       className="bg-card border border-border rounded-2xl overflow-hidden"
     >
       {/* Metrics grid */}
-      <div className="grid grid-cols-3 divide-x divide-border border-b border-border">
+      <div className={`grid ${items.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} divide-x divide-border border-b border-border`}>
         {items.map((item, i) => (
           <motion.div
             key={item.label}
@@ -101,7 +114,25 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
         </div>
       )}
 
-      {/* Reasons */}
+      {/* CV Model Prediction */}
+      {result.cv_prediction && (
+        <div className="p-4 border-b border-border flex items-center gap-3">
+          <Eye className="w-4 h-4 text-primary" />
+          <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">CV Verdict</span>
+          <span className={`ml-auto px-3 py-1 rounded-md text-xs font-mono font-semibold border ${
+            result.cv_prediction === "BENIGN"
+              ? "bg-safe/10 text-safe border-safe/20"
+              : "bg-danger/10 text-danger border-danger/20"
+          }`}>
+            {result.cv_prediction}
+          </span>
+          {result.cv_model_source && (
+            <span className="text-xs font-mono text-muted-foreground">via {result.cv_model_source}</span>
+          )}
+        </div>
+      )}
+
+
       {result.reasons.length > 0 && (
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">

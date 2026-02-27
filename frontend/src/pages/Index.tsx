@@ -14,10 +14,13 @@ interface AnalysisResult {
   risk_level: "SAFE" | "SUSPICIOUS" | "DANGEROUS";
   verdict_color: string;
   domain_age_days: number | null;
-  ssl_valid: boolean;
+  ssl_valid: boolean | null;
   suspicious_keywords: string[];
   url_flags: string[];
   ml_phishing_probability: number;
+  cv_malicious_probability?: number;
+  cv_prediction?: "BENIGN" | "MALICIOUS";
+  cv_model_source?: string;
   reasons: string[];
 }
 
@@ -37,6 +40,29 @@ const Index = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url }),
+      });
+      if (!res.ok) throw new Error("Analysis failed");
+      const data = await res.json();
+      setResult(data);
+    } catch {
+      setError("Could not connect to the analysis server. Make sure your backend is running.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const analyzeLiveFrame = async (url: string, imageBlob: Blob) => {
+    setIsAnalyzing(true);
+    setResult(null);
+    setError(null);
+    setLastAnalyzedUrl(url);
+    try {
+      const formData = new FormData();
+      formData.append("file", imageBlob, "frame.jpg");
+      formData.append("decoded_url", url);
+      const res = await fetch(`${API_BASE}/analyze-live-frame`, {
+        method: "POST",
+        body: formData,
       });
       if (!res.ok) throw new Error("Analysis failed");
       const data = await res.json();
@@ -91,7 +117,7 @@ const Index = () => {
           <div className="h-px flex-1 bg-border" />
         </div>
 
-        <LiveScanner onUrlDetected={analyzeUrl} isAnalyzing={isAnalyzing} lastAnalyzedUrl={lastAnalyzedUrl} />
+        <LiveScanner onUrlDetected={analyzeUrl} onLiveFrame={analyzeLiveFrame} isAnalyzing={isAnalyzing} lastAnalyzedUrl={lastAnalyzedUrl} />
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-border" />

@@ -5,11 +5,12 @@ import { Html5Qrcode } from "html5-qrcode";
 
 interface LiveScannerProps {
   onUrlDetected: (url: string) => void;
+  onLiveFrame?: (url: string, imageBlob: Blob) => void;
   isAnalyzing: boolean;
   lastAnalyzedUrl: string | null;
 }
 
-const LiveScanner = ({ onUrlDetected, isAnalyzing, lastAnalyzedUrl }: LiveScannerProps) => {
+const LiveScanner = ({ onUrlDetected, onLiveFrame, isAnalyzing, lastAnalyzedUrl }: LiveScannerProps) => {
   const [isActive, setIsActive] = useState(false);
   const [detectedUrl, setDetectedUrl] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -28,10 +29,26 @@ const LiveScanner = ({ onUrlDetected, isAnalyzing, lastAnalyzedUrl }: LiveScanne
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         lastSentUrlRef.current = decodedText;
+
+        // If onLiveFrame is provided, capture a frame and send both
+        if (onLiveFrame) {
+          const videoEl = document.querySelector("#live-scanner-region video") as HTMLVideoElement | null;
+          if (videoEl) {
+            const canvas = document.createElement("canvas");
+            canvas.width = videoEl.videoWidth;
+            canvas.height = videoEl.videoHeight;
+            const ctx = canvas.getContext("2d");
+            ctx?.drawImage(videoEl, 0, 0);
+            canvas.toBlob((blob) => {
+              if (blob) onLiveFrame(decodedText, blob);
+            }, "image/jpeg", 0.8);
+            return;
+          }
+        }
         onUrlDetected(decodedText);
       }, 500);
     },
-    [onUrlDetected]
+    [onUrlDetected, onLiveFrame]
   );
 
   const startScanner = async () => {

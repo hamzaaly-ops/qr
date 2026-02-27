@@ -69,7 +69,7 @@ class URLAnalyzer:
 
         reasons: list[str] = []
         if age_days is None:
-            reasons.append("Domain age is unavailable.")
+            reasons.append("Domain age could not be determined.")
         elif age_days < 90:
             reasons.append(f"Domain is very new ({age_days} days old).")
         elif age_days < 365:
@@ -79,6 +79,8 @@ class URLAnalyzer:
             reasons.append("URL is using non-HTTPS scheme.")
         elif ssl_valid is False:
             reasons.append("SSL certificate validation failed.")
+        elif ssl_valid is None and ssl_error:
+            reasons.append("SSL certificate check could not be completed.")
 
         if suspicious_keywords:
             reasons.append(f"Suspicious terms found: {', '.join(suspicious_keywords)}.")
@@ -88,7 +90,7 @@ class URLAnalyzer:
 
         if age_error and age_days is None:
             reasons.append(f"WHOIS note: {age_error}")
-        if ssl_error and ssl_valid is False:
+        if ssl_error and ssl_valid is not True:
             reasons.append(f"SSL note: {ssl_error}")
 
         if not reasons:
