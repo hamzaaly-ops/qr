@@ -1,0 +1,49 @@
+# ==============================
+# FRONTEND (Next.js / Node)
+# ==============================
+
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+
+# ==============================
+# BACKEND (FastAPI / Python)
+# ==============================
+
+backend/qrenv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/**/*.pyc
+backend/.env
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.coverage
+backend/htmlcov/
+
+# ==============================
+# GENERAL
+# ==============================
+
+.env
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ==============================
+# DATABASE (if using sqlite)
+# ==============================
+
+*.db
+*.sqlite3
