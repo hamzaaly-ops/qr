@@ -16,6 +16,7 @@ app = FastAPI(
 )
 origins = [
     "http://localhost:8080",
+    "https://qr.techyaim.com",
 ]
 
 app.add_middleware(
