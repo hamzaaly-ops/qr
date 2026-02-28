@@ -7,7 +7,7 @@ import LiveScanner from "@/components/LiveScanner";
 import RiskGauge from "@/components/RiskGauge";
 import ResultsCard from "@/components/ResultsCard";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://hamzaaly234-qr-backend.hf.space";
 
 interface AnalysisResult {
   risk_score: number;
