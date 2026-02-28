@@ -18,7 +18,7 @@ interface AnalysisResult {
   suspicious_keywords: string[];
   url_flags: string[];
   ml_phishing_probability: number;
-  cv_malicious_probability?: number;
+  cv_malicious_probability?: number | null;
   cv_prediction?: "BENIGN" | "MALICIOUS";
   cv_model_source?: string;
   reasons: string[];

@@ -10,6 +10,7 @@ from app.services.url_checks import (
     get_domain_age_days,
     inspect_url_patterns,
     normalize_url,
+    whois_error_indicates_unregistered,
 )
 
 
@@ -54,6 +55,7 @@ class URLAnalyzer:
         suspicious_keywords, keyword_penalty = find_suspicious_keywords(normalized_url)
         url_flags, pattern_penalty = inspect_url_patterns(normalized_url, domain)
         ml_probability = self.model.predict_proba(normalized_url)
+        whois_unregistered = whois_error_indicates_unregistered(age_error)
 
         age_penalty = domain_age_penalty(age_days)
         ssl_penalty = 0
@@ -61,10 +63,28 @@ class URLAnalyzer:
             ssl_penalty = 25
         if parsed.scheme.lower() != "https":
             ssl_penalty = max(ssl_penalty, 12)
+        whois_penalty = 18 if whois_unregistered else 0
 
         ml_points = int(round(ml_probability * 45))
-        raw_score = ml_points + age_penalty + ssl_penalty + keyword_penalty + pattern_penalty
+        raw_score = ml_points + age_penalty + ssl_penalty + keyword_penalty + pattern_penalty + whois_penalty
         risk_score = max(0, min(100, raw_score))
+        forced_suspicious = False
+        forced_non_https_suspicious = False
+        if parsed.scheme.lower() != "https" and risk_score < 35:
+            risk_score = 35
+            forced_non_https_suspicious = True
+
+        has_other_risk_signals = (
+            keyword_penalty > 0
+            or pattern_penalty > 0
+            or whois_unregistered
+            or ml_probability >= 0.30
+        )
+        if parsed.scheme.lower() == "https" and ssl_valid is None and has_other_risk_signals:
+            if risk_score < 35:
+                risk_score = 35
+                forced_suspicious = True
+
         risk_level, verdict_color = _risk_level(risk_score)
 
         reasons: list[str] = []
@@ -74,13 +94,19 @@ class URLAnalyzer:
             reasons.append(f"Domain is very new ({age_days} days old).")
         elif age_days < 365:
             reasons.append(f"Domain is less than 1 year old ({age_days} days).")
+        if whois_unregistered:
+            reasons.append("WHOIS indicates this domain may be unregistered.")
 
         if parsed.scheme.lower() != "https":
             reasons.append("URL is using non-HTTPS scheme.")
+            if forced_non_https_suspicious:
+                reasons.append("Marked as suspicious because the URL is not using HTTPS.")
         elif ssl_valid is False:
             reasons.append("SSL certificate validation failed.")
         elif ssl_valid is None and ssl_error:
             reasons.append("SSL certificate check could not be completed.")
+            if forced_suspicious:
+                reasons.append("Marked as suspicious because HTTPS trust checks are unavailable.")
 
         if suspicious_keywords:
             reasons.append(f"Suspicious terms found: {', '.join(suspicious_keywords)}.")
@@ -135,6 +161,8 @@ class URLAnalyzer:
         if cv_malicious_probability is None:
             if cv_error:
                 reasons.append(f"CV model note: {cv_error}")
+            else:
+                reasons.append("CV model is unavailable, so it was not used in the final risk score.")
             payload["reasons"] = reasons
             return URLScanResponse(**payload)
 
@@ -158,6 +186,9 @@ class URLAnalyzer:
             reasons.append(
                 f"CV model is uncertain ({cv_malicious_probability:.2f})."
             )
+        reasons.append(
+            f"CV model probability ({cv_malicious_probability:.2f}) was included in the final risk score."
+        )
 
         payload["reasons"] = reasons
         return URLScanResponse(**payload)

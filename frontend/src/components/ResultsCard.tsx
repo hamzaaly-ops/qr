@@ -10,7 +10,7 @@ interface AnalysisResult {
   suspicious_keywords: string[];
   url_flags: string[];
   ml_phishing_probability: number;
-  cv_malicious_probability?: number;
+  cv_malicious_probability?: number | null;
   cv_prediction?: "BENIGN" | "MALICIOUS";
   cv_model_source?: string;
   reasons: string[];
@@ -21,6 +21,9 @@ interface ResultsCardProps {
 }
 
 const ResultsCard = ({ result }: ResultsCardProps) => {
+  const cvProbability =
+    typeof result.cv_malicious_probability === "number" ? result.cv_malicious_probability : null;
+
   const items = [
     {
       icon: Clock,
@@ -40,16 +43,13 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
       value: `${(result.ml_phishing_probability * 100).toFixed(1)}%`,
       status: result.ml_phishing_probability < 0.3 ? "ok" : result.ml_phishing_probability < 0.6 ? "warn" : "bad",
     },
-    ...(result.cv_malicious_probability !== undefined
-      ? [
-          {
-            icon: Eye,
-            label: "CV Model",
-            value: `${(result.cv_malicious_probability * 100).toFixed(1)}%`,
-            status: result.cv_malicious_probability < 0.3 ? "ok" : result.cv_malicious_probability < 0.6 ? "warn" : "bad",
-          },
-        ]
-      : []),
+    {
+      icon: Eye,
+      label: "CV Model",
+      value: cvProbability === null ? "Unavailable" : `${(cvProbability * 100).toFixed(1)}%`,
+      status: cvProbability === null ? "warn" : cvProbability < 0.3 ? "ok" : cvProbability < 0.6 ? "warn" : "bad",
+      note: cvProbability === null ? "Not used in score" : "Included in score",
+    },
   ];
 
   const statusIcon = {
@@ -66,7 +66,7 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
       className="bg-card border border-border rounded-2xl overflow-hidden"
     >
       {/* Metrics grid */}
-      <div className={`grid ${items.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} divide-x divide-border border-b border-border`}>
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-border border-b border-border">
         {items.map((item, i) => (
           <motion.div
             key={item.label}
@@ -85,6 +85,9 @@ const ResultsCard = ({ result }: ResultsCardProps) => {
               {statusIcon[item.status as keyof typeof statusIcon]}
               <span className="text-sm font-semibold text-foreground">{item.value}</span>
             </div>
+            {"note" in item && item.note ? (
+              <p className="mt-1 text-[11px] text-muted-foreground font-mono">{item.note}</p>
+            ) : null}
           </motion.div>
         ))}
       </div>

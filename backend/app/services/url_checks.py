@@ -171,6 +171,23 @@ def get_domain_age_days(domain: str | None) -> tuple[int | None, str | None]:
         return None, first_line
 
 
+def whois_error_indicates_unregistered(error_text: str | None) -> bool:
+    if not error_text:
+        return False
+
+    lowered = error_text.lower()
+    signals = (
+        "no match for",
+        "domain not found",
+        "not registered",
+        "no object found",
+        "status: free",
+        "no entries found",
+        "available for registration",
+    )
+    return any(token in lowered for token in signals)
+
+
 def check_ssl_certificate(domain: str | None) -> tuple[bool | None, str | None]:
     ascii_domain = _to_ascii_domain(domain)
     if not ascii_domain:
