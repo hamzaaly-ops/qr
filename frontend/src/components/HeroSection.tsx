@@ -26,7 +26,7 @@ const HeroSection = () => {
           transition={{ delay: 0.3, duration: 0.6 }}
           className="text-5xl md:text-7xl font-bold tracking-tight mb-4"
         >
-          QR <span className="text-gradient">Phish</span> Guard
+          QR <span className="text-gradient">Phish</span> Difa
         </motion.h1>
 
         <motion.p
